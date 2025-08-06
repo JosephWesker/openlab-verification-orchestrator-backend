@@ -5,7 +5,14 @@ import cors from "cors"
 
 dotenv.config();
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: 'https://verify.openlab.mx', // Dominio del frontend que hará la solicitud
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true, // solo si necesitas enviar cookies o auth headers
+  })
+)
 app.use(express.json());
 
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
