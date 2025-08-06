@@ -1,0 +1,104 @@
+import fetch from "node-fetch";
+
+export default async function handler(req, res) {
+  // Habilitar CORS
+  // const allowedOrigins = ["https://verify.openlab.mx"];
+
+  // const origin = req.headers.origin;
+  // if (allowedOrigins.includes(origin)) {
+  //   res.setHeader("Access-Control-Allow-Origin", origin);
+  // }
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Max-Age", "86400"); // caché del preflight
+
+  // Responder a preflight CORS
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Falta el email" });
+  }
+
+  try {
+    // Obtener token del Management API
+    const authResponse = await fetch(
+      `https://${process.env.AUTH0_DOMAIN}/oauth/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: process.env.AUTH0_CLIENT_ID,
+          client_secret: process.env.AUTH0_CLIENT_SECRET,
+          audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+          grant_type: "client_credentials",
+        }),
+      }
+    );
+
+    const { access_token } = await authResponse.json();
+
+    if (!access_token) {
+      return res
+        .status(500)
+        .json({ error: "No se pudo obtener el token de acceso" });
+    }
+
+    // 2. Buscar usuario por email
+    const userSearchRes = await fetch(
+      `https://${
+        process.env.AUTH0_DOMAIN
+      }/api/v2/users-by-email?email=${encodeURIComponent(email)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
+
+    const users = await userSearchRes.json();
+    if (!Array.isArray(users) || users.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Usuario no encontrado con ese email" });
+    }
+
+    const userId = users[0].user_id;
+
+    // Llamar a la API de Auth0 para reenviar el email de verificación
+    const verifyResponse = await fetch(
+      `https://${process.env.AUTH0_DOMAIN}/api/v2/jobs/verification-email`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId, // Alternativamente busca el user_id primero si es necesario
+          client_id: process.env.AUTH0_CLIENT_ID,
+        }),
+      }
+    );
+
+    if (!verifyResponse.ok) {
+      const errorData = await verifyResponse.json();
+      return res
+        .status(400)
+        .json({ error: "Error al reenviar el correo", detail: errorData });
+    }
+
+    res.status(200).json({ message: "Correo de verificación reenviado." });
+  } catch (err) {
+    console.error("Error reenviando verificación:", err);
+    res.status(500).json({ error: "Error interno al reenviar verificación" });
+  }
+}
