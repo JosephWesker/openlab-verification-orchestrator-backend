@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   // Habilitar CORS
-  const allowedOrigins = ["https://verify.openlab.mx"];
+  // const allowedOrigins = ["https://verify.openlab.mx"];
 
   // const origin = req.headers.origin;
   // if (allowedOrigins.includes(origin)) {
