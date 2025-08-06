@@ -1,80 +1,81 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
+  // Habilitar CORS
+  res.setHeader('Access-Control-Allow-Origin', 'https://verify.openlab.mx');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Responder a preflight CORS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
   const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: 'Email requerido' });
-  }
 
-  const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
-  const AUTH0_CLIENT_ID = process.env.AUTH0_CLIENT_ID;
-  const AUTH0_CLIENT_SECRET = process.env.AUTH0_CLIENT_SECRET;
-  const AUTH0_AUDIENCE = `https://${AUTH0_DOMAIN}/api/v2/`;
+  if (!email) {
+    return res.status(400).json({ error: 'Falta el email' });
+  }
 
   try {
     // Obtener token del Management API
-    const tokenRes = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+    const authResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: AUTH0_CLIENT_ID,
-        client_secret: AUTH0_CLIENT_SECRET,
-        audience: AUTH0_AUDIENCE,
-        grant_type: 'client_credentials',
-      }),
+        client_id: process.env.AUTH0_CLIENT_ID,
+        client_secret: process.env.AUTH0_CLIENT_SECRET,
+        audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+        grant_type: 'client_credentials'
+      })
     });
 
-    const tokenData = await tokenRes.json();
-    const accessToken = tokenData.access_token;
+    const { access_token } = await authResponse.json();
 
-    if (!accessToken) {
-      console.error('No se pudo obtener el token de Auth0');
-      return res.status(500).json({ error: 'Error autenticando con Auth0' });
+    if (!access_token) {
+      return res.status(500).json({ error: 'No se pudo obtener el token de acceso' });
     }
 
-    // Buscar usuario por email
-    const userRes = await fetch(
-      `https://${AUTH0_DOMAIN}/api/v2/users-by-email?email=${encodeURIComponent(email)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
+    // 2. Buscar usuario por email
+    const userSearchRes = await fetch(`https://TU_DOMINIO.auth0.com/api/v2/users-by-email?email=${encodeURIComponent(email)}`, {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
 
-    const users = await userRes.json();
-
+    const users = await userSearchRes.json();
     if (!Array.isArray(users) || users.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ error: 'Usuario no encontrado con ese email' });
     }
 
     const userId = users[0].user_id;
 
-    // Reenviar email de verificación
-    const resendRes = await fetch(
-      `https://${AUTH0_DOMAIN}/api/v2/jobs/verification-email`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ user_id: userId }),
-      }
-    );
+    // Llamar a la API de Auth0 para reenviar el email de verificación
+    const verifyResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/jobs/verification-email`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId, // Alternativamente busca el user_id primero si es necesario
+        client_id: process.env.AUTH0_CLIENT_ID
+      })
+    });
 
-    if (!resendRes.ok) {
-      console.error('Error al reenviar email', await resendRes.text());
-      return res.status(500).json({ error: 'No se pudo reenviar el correo' });
+    if (!verifyResponse.ok) {
+      const errorData = await verifyResponse.json();
+      return res.status(400).json({ error: 'Error al reenviar el correo', detail: errorData });
     }
 
-    return res.status(200).json({ success: true });
+    res.status(200).json({ message: 'Correo de verificación reenviado.' });
+
   } catch (err) {
-    console.error('Error inesperado:', err);
-    return res.status(500).json({ error: 'Error interno del servidor' });
+    console.error('Error reenviando verificación:', err);
+    res.status(500).json({ error: 'Error interno al reenviar verificación' });
   }
 }
