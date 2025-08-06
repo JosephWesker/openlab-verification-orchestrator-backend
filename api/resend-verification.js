@@ -5,6 +5,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://verify.openlab.mx');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Max-Age', '86400'); // caché del preflight
 
   // Responder a preflight CORS
   if (req.method === 'OPTIONS') {
@@ -41,7 +42,7 @@ export default async function handler(req, res) {
     }
 
     // 2. Buscar usuario por email
-    const userSearchRes = await fetch(`https://TU_DOMINIO.auth0.com/api/v2/users-by-email?email=${encodeURIComponent(email)}`, {
+    const userSearchRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users-by-email?email=${encodeURIComponent(email)}`, {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
