@@ -67,7 +67,7 @@ export default async function handler(req, res) {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${access_token}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/Ïson",
         },
         body: JSON.stringify({
           email_verified: false,
