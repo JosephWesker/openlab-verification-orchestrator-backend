@@ -22,10 +22,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { email } = req.body;
+  const { clientEmail, clientId  } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ error: "Falta el email" });
+  if (!clientEmail || !clientId) {
+    return res.status(400).json({ error: "Falta el email o el clientId" });
   }
 
   try {
@@ -104,7 +104,8 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           user_id: userId,
-          client_id: process.env.AUTH0_CLIENT_ID,
+          // client_id: process.env.AUTH0_CLIENT_ID,
+          client_id: clientId,
         }),
       }
     );
