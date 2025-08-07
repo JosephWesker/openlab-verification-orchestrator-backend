@@ -22,9 +22,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { userEmail, clientId, returnTo } = req.body;
+  const { userEmail, clientId, clientName, state } = req.body;
 
-  if (!userEmail || !clientId || !returnTo) {
+  if (!userEmail || !clientId || !clientName || !state) {
     return res.status(400).json({ error: "Falta algún parámetro" });
   }
 
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
           user_id: userId,
           // client_id: process.env.AUTH0_CLIENT_ID,
           client_id: clientId,
-          redirect_uri: returnTo
+          // redirect_uri: returnTo
         }),
       }
     );
