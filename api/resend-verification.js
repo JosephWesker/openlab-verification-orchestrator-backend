@@ -22,10 +22,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { clientEmail, clientId  } = req.body;
+  const { userEmail, clientId  } = req.body;
 
-  if (!clientEmail || !clientId) {
-    return res.status(400).json({ error: "Falta el email o el clientId" });
+  if (!userEmail || !clientId) {
+    return res.status(400).json({ error: "Falta el userEmail o el clientId" });
   }
 
   try {
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     const userSearchRes = await fetch(
       `https://${
         process.env.AUTH0_DOMAIN
-      }/api/v2/users-by-email?email=${encodeURIComponent(email)}`,
+      }/api/v2/users-by-email?email=${encodeURIComponent(userEmail)}`,
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
