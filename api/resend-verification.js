@@ -124,6 +124,10 @@ export default async function handler(req, res) {
     //     .json({ error: "Error al reenviar el correo", detail: errorData });
     // }
 
+    console.log('userId', userId)
+    console.log('clientId', clientId)
+    console.log('returnTo', returnTo)
+
     const ticketResponse = await fetch(
       `https://${process.env.AUTH0_DOMAIN}/api/v2/tickets/email-verification`,
       {
