@@ -100,36 +100,8 @@ export default async function handler(req, res) {
     }
 
     // 4. Llama a la API de Auth0 para reenviar el email de verificación
-    // const verifyResponse = await fetch(
-    //   `https://${process.env.AUTH0_DOMAIN}/api/v2/jobs/verification-email`,
-    //   {
-    //     method: "POST",
-    //     headers: {
-    //       Authorization: `Bearer ${access_token}`,
-    //       "Content-Type": "application/json",
-    //     },
-    //     body: JSON.stringify({
-    //       user_id: userId,
-    //       // client_id: process.env.AUTH0_CLIENT_ID,
-    //       client_id: clientId,
-    //       redirect_uri: returnTo
-    //     }),
-    //   }
-    // );
-
-    // if (!verifyResponse.ok) {
-    //   const errorData = await verifyResponse.json();
-    //   return res
-    //     .status(400)
-    //     .json({ error: "Error al reenviar el correo", detail: errorData });
-    // }
-
-    console.log("userId", userId);
-    console.log("clientId", clientId);
-    console.log("returnTo", returnTo);
-
-    const ticketResponse = await fetch(
-      `https://${process.env.AUTH0_DOMAIN}/api/v2/tickets/email-verification`,
+    const verifyResponse = await fetch(
+      `https://${process.env.AUTH0_DOMAIN}/api/v2/jobs/verification-email`,
       {
         method: "POST",
         headers: {
@@ -137,22 +109,50 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          result_url: returnTo,
           user_id: userId,
-          client_id: clientId
-          // Pasa la URL de redirección en el ticket
-          // Este es el parámetro que le dirá a Auth0 a dónde ir
+          // client_id: process.env.AUTH0_CLIENT_ID,
+          client_id: clientId,
+          redirect_uri: returnTo
         }),
       }
     );
 
-    if (!ticketResponse.ok) {
-      const errorData = await ticketResponse.json();
-      return res.status(400).json({
-        error: "Error al crear el ticket de verificación",
-        detail: errorData,
-      });
+    if (!verifyResponse.ok) {
+      const errorData = await verifyResponse.json();
+      return res
+        .status(400)
+        .json({ error: "Error al reenviar el correo", detail: errorData });
     }
+
+    // console.log("userId", userId);
+    // console.log("clientId", clientId);
+    // console.log("returnTo", returnTo);
+
+    // const ticketResponse = await fetch(
+    //   `https://${process.env.AUTH0_DOMAIN}/api/v2/tickets/email-verification`,
+    //   {
+    //     method: "POST",
+    //     headers: {
+    //       Authorization: `Bearer ${access_token}`,
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify({
+    //       result_url: returnTo,
+    //       user_id: userId,
+    //       client_id: clientId
+    //       // Pasa la URL de redirección en el ticket
+    //       // Este es el parámetro que le dirá a Auth0 a dónde ir
+    //     }),
+    //   }
+    // );
+
+    // if (!ticketResponse.ok) {
+    //   const errorData = await ticketResponse.json();
+    //   return res.status(400).json({
+    //     error: "Error al crear el ticket de verificación",
+    //     detail: errorData,
+    //   });
+    // }
 
     // 5. Si el envío fue exitoso, actualiza o inserta el timestamp en Supabase
     const { error: upsertError } = await supabase
@@ -166,12 +166,12 @@ export default async function handler(req, res) {
       );
     }
 
-    // res.status(200).json({ message: "Correo de verificación reenviado." });
-    const { ticket } = await ticketResponse.json();
-    res.status(200).json({
-      message: "Correo de verificación reenviado.",
-      ticketUrl: ticket,
-    });
+    res.status(200).json({ message: "Correo de verificación reenviado." });
+    // const { ticket } = await ticketResponse.json();
+    // res.status(200).json({
+    //   message: "Correo de verificación reenviado.",
+    //   ticketUrl: ticket,
+    // });
   } catch (err) {
     console.error("Error reenviando verificación:", err);
     res.status(500).json({ error: "Error interno al reenviar verificación" });
