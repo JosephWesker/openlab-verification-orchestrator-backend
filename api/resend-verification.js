@@ -137,7 +137,7 @@ export default async function handler(req, res) {
           client_id: clientId,
           // Pasa la URL de redirección en el ticket
           // Este es el parámetro que le dirá a Auth0 a dónde ir
-          result_url: redirectUri,
+          result_url: returnTo,
         }),
       }
     );
