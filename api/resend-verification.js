@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 // --- Configuración de Supabase ---
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -22,10 +22,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { userEmail, clientId  } = req.body;
+  const { userEmail, clientId, returnTo } = req.body;
 
-  if (!userEmail || !clientId) {
-    return res.status(400).json({ error: "Falta el userEmail o el clientId" });
+  if (!userEmail || !clientId || returnTo) {
+    return res.status(400).json({ error: "Falta algún parámetro" });
   }
 
   try {
@@ -79,18 +79,24 @@ export default async function handler(req, res) {
 
     // 3. Consulta la base de datos de Supabase para el último timestamp
     const { data: cooldownData, error: cooldownError } = await supabase
-      .from('cooldowns')
-      .select('last_sent_timestamp')
-      .eq('user_id', userId)
+      .from("cooldowns")
+      .select("last_sent_timestamp")
+      .eq("user_id", userId)
       .single();
 
-    if (cooldownError && cooldownError.code !== 'PGRST116') { // 'PGRST116' es cuando no se encuentra el registro
-      console.error('Error al consultar cooldown en Supabase:', cooldownError);
+    if (cooldownError && cooldownError.code !== "PGRST116") {
+      // 'PGRST116' es cuando no se encuentra el registro
+      console.error("Error al consultar cooldown en Supabase:", cooldownError);
     }
 
-    if (cooldownData && now - cooldownData.last_sent_timestamp < COOLDOWN_SECONDS * 1000) {
+    if (
+      cooldownData &&
+      now - cooldownData.last_sent_timestamp < COOLDOWN_SECONDS * 1000
+    ) {
       // Si el último envío fue hace menos de 60 segundos
-      return res.status(429).json({ error: "Demasiados intentos. Intenta de nuevo más tarde." });
+      return res
+        .status(429)
+        .json({ error: "Demasiados intentos. Intenta de nuevo más tarde." });
     }
 
     // 4. Llama a la API de Auth0 para reenviar el email de verificación
@@ -106,6 +112,7 @@ export default async function handler(req, res) {
           user_id: userId,
           // client_id: process.env.AUTH0_CLIENT_ID,
           client_id: clientId,
+          redirect_uri: returnTo,
         }),
       }
     );
@@ -119,11 +126,14 @@ export default async function handler(req, res) {
 
     // 5. Si el envío fue exitoso, actualiza o inserta el timestamp en Supabase
     const { error: upsertError } = await supabase
-      .from('cooldowns')
+      .from("cooldowns")
       .upsert({ user_id: userId, last_sent_timestamp: now });
 
     if (upsertError) {
-      console.error('Error al actualizar el cooldown en Supabase:', upsertError);
+      console.error(
+        "Error al actualizar el cooldown en Supabase:",
+        upsertError
+      );
     }
 
     res.status(200).json({ message: "Correo de verificación reenviado." });
