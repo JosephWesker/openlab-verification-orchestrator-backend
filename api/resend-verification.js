@@ -124,9 +124,9 @@ export default async function handler(req, res) {
     //     .json({ error: "Error al reenviar el correo", detail: errorData });
     // }
 
-    console.log('userId', userId)
-    console.log('clientId', clientId)
-    console.log('returnTo', returnTo)
+    console.log("userId", userId);
+    console.log("clientId", clientId);
+    console.log("returnTo", returnTo);
 
     const ticketResponse = await fetch(
       `https://${process.env.AUTH0_DOMAIN}/api/v2/tickets/email-verification`,
@@ -137,11 +137,11 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          result_url: returnTo,
           user_id: userId,
-          client_id: clientId,
+          client_id: clientId
           // Pasa la URL de redirección en el ticket
           // Este es el parámetro que le dirá a Auth0 a dónde ir
-          result_url: returnTo,
         }),
       }
     );
@@ -168,12 +168,10 @@ export default async function handler(req, res) {
 
     // res.status(200).json({ message: "Correo de verificación reenviado." });
     const { ticket } = await ticketResponse.json();
-    res
-      .status(200)
-      .json({
-        message: "Correo de verificación reenviado.",
-        ticketUrl: ticket,
-      });
+    res.status(200).json({
+      message: "Correo de verificación reenviado.",
+      ticketUrl: ticket,
+    });
   } catch (err) {
     console.error("Error reenviando verificación:", err);
     res.status(500).json({ error: "Error interno al reenviar verificación" });
