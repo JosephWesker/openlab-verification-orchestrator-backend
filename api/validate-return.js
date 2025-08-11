@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   // Habilitar CORS para tu frontend
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "https://verify.openlab.mx/");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Max-Age", "86400");
@@ -66,9 +66,15 @@ export default async function handler(req, res) {
     const clientData = await clientRes.json();
     console.log("clientData", clientData);
     const allowedCallbacks = clientData.callbacks || [];
+    const clientMetadata = clientData.client_metadata
 
-    // 3. Validar que el returnTo esté exactamente en la lista
-    if (allowedCallbacks.length > 0) {
+    // 3. 
+    if (clientMetadata.redirect_on_verify){
+      return res.status(200).json({ valid: true, safeUrl: clientMetadata.redirect_on_verify });
+    }
+
+    // 4. 
+    else if (allowedCallbacks.length > 0) {
       return res.status(200).json({ valid: true, safeUrl: allowedCallbacks[0] });
     } else {
       return res.status(400).json({
