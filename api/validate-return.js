@@ -16,10 +16,11 @@ export default async function handler(req, res) {
   }
 
   // const { returnTo, clientId } = req.body;
+  const { clientId } = req.body;
 
-  // if (!returnTo || !clientId) {
-  //   return res.status(400).json({ error: "Faltan parámetros returnTo o clientId" });
-  // }
+  if (!clientId) {
+    return res.status(400).json({ error: "Falta el clientId" });
+  }
 
   try {
     // 1. Obtener token del Management API de Auth0
