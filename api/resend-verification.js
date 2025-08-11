@@ -22,9 +22,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { userEmail, clientId, state } = req.body;
+  const { userEmail, clientId } = req.body;
 
-  if (!userEmail || !clientId || !state) {
+  if (!userEmail || !clientId) {
     return res.status(400).json({ error: "Falta algún parámetro" });
   }
 
