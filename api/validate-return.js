@@ -16,10 +16,10 @@ export default async function handler(req, res) {
   }
 
   // const { returnTo, clientId } = req.body;
-  const { clientId } = req.body;
+  const { clientId, callbackDomain } = req.body;
 
-  if (!clientId) {
-    return res.status(400).json({ error: "Falta el clientId" });
+  if (!clientId || !callbackDomain) {
+    return res.status(400).json({ error: "Falta algún parámetro" });
   }
 
   try {
@@ -66,16 +66,24 @@ export default async function handler(req, res) {
     const clientData = await clientRes.json();
     console.log("clientData", clientData);
     const allowedCallbacks = clientData.callbacks || [];
-    const clientMetadata = clientData.client_metadata
+    const clientMetadata = clientData.client_metadata;
 
-    // 3. 
-    if (clientMetadata.redirect_on_verify){
-      return res.status(200).json({ valid: true, safeUrl: clientMetadata.redirect_on_verify });
+    // 3.
+    if (clientMetadata.redirect_on_verify) {
+      return res
+        .status(200)
+        .json({ valid: true, safeUrl: clientMetadata.redirect_on_verify });
     }
 
-    // 4. 
+    // 4.
     else if (allowedCallbacks.length > 0) {
-      return res.status(200).json({ valid: true, safeUrl: allowedCallbacks[0] });
+      if (allowedCallbacks.includes(callbackDomain)) {
+        return res.status(200).json({ valid: true, safeUrl: callbackDomain });
+      } else {
+        return res
+          .status(200)
+          .json({ valid: true, safeUrl: allowedCallbacks[0] });
+      }
     } else {
       return res.status(400).json({
         valid: false,
